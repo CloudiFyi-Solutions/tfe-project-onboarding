@@ -27,7 +27,25 @@ jobs:
           echo "PROJECT_NAME=${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
           echo "PROJECT_DESCRIPTION=${{ github.event.inputs.project_description }}" >> $GITHUB_ENV
 
+      - name: Check if Project Exists
+        id: check_project
+        env:
+          TFC_API_TOKEN: ${{ secrets.TFC_API_TOKEN }}
+        run: |
+          RESPONSE=$(curl --silent --request GET \
+            --url "https://app.terraform.io/api/v2/organizations/$TFC_ORG/projects" \
+            --header "Authorization: Bearer $TFC_API_TOKEN" \
+            --header "Content-Type: application/vnd.api+json" | jq -r '.data[] | select(.attributes.name=="'"${PROJECT_NAME}"'")')
+          if [[ -n "$RESPONSE" ]]; then
+            echo "Project already exists."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Project does not exist."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Terraform Cloud Project
+        if: steps.check_project.outputs.exists == 'false'
         env:
           TFC_API_TOKEN: ${{ secrets.TFC_API_TOKEN }}
         run: |
@@ -45,11 +63,11 @@ jobs:
               }
             }'
 
-      - name: Confirm Creation
+      - name: Confirm Project Exists or Was Created
         env:
-            TFC_API_TOKEN: ${{ secrets.TFC_API_TOKEN }}
+          TFC_API_TOKEN: ${{ secrets.TFC_API_TOKEN }}
         run: |
-            curl --request GET \
+          curl --request GET \
             --url "https://app.terraform.io/api/v2/organizations/$TFC_ORG/projects" \
             --header "Authorization: Bearer $TFC_API_TOKEN" \
             --header "Content-Type: application/vnd.api+json" | jq '.data[] | select(.attributes.name=="'"${PROJECT_NAME}"'")'
