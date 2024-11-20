@@ -3,6 +3,10 @@ name: Create Terraform Cloud Project
 on:
   workflow_dispatch:
     inputs:
+      org_name:
+        description: "Name of the TFC Org"
+        required: true
+        default: "CloudMania"
       project_name:
         description: "Name of the Terraform Cloud project to create"
         required: true
@@ -23,7 +27,7 @@ jobs:
       - name: Set Variables
         id: set_vars
         run: |
-          echo "TFC_ORG=CloudMania" >> $GITHUB_ENV
+          echo "TFC_ORG=${{ github.event.inputs.org_name }}" >> $GITHUB_ENV
           echo "PROJECT_NAME=${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
           echo "PROJECT_DESCRIPTION=${{ github.event.inputs.project_description }}" >> $GITHUB_ENV
 
