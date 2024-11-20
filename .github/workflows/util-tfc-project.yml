@@ -1,0 +1,55 @@
+name: Create Terraform Cloud Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        description: "Name of the Terraform Cloud project to create"
+        required: true
+        default: "new_project"
+      project_description:
+        description: "Description of the Terraform Cloud project"
+        required: false
+        default: "A new Terraform Cloud project created via GitHub Actions"
+
+jobs:
+  create-project:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set Variables
+        id: set_vars
+        run: |
+          echo "TFC_ORG=CloudMania" >> $GITHUB_ENV
+          echo "PROJECT_NAME=${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
+          echo "PROJECT_DESCRIPTION=${{ github.event.inputs.project_description }}" >> $GITHUB_ENV
+
+      - name: Create Terraform Cloud Project
+        env:
+          TFC_API_TOKEN: ${{ secrets.TFC_API_TOKEN }}
+        run: |
+          curl --request POST \
+            --url "https://app.terraform.io/api/v2/organizations/$TFC_ORG/projects" \
+            --header "Authorization: Bearer $TFC_API_TOKEN" \
+            --header "Content-Type: application/vnd.api+json" \
+            --data '{
+              "data": {
+                "type": "projects",
+                "attributes": {
+                  "name": "'"${PROJECT_NAME}"'",
+                  "description": "'"${PROJECT_DESCRIPTION}"'"
+                }
+              }
+            }'
+
+      - name: Confirm Creation
+        env:
+          TFC_API_TOKEN: ${{ secrets.TFC_API_TOKEN }}
+        run: |
+          curl --request GET \
+            --url "https://app.terraform.io/api/v2/organizations/$TFC_ORG/projects" \
+            --header "Authorization: Bearer $TFC_API_TOKEN" \
+            --header "Content-Type: application/vnd.api+json" | jq '.data[] | select(.attributes.n
